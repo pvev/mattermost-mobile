@@ -340,6 +340,10 @@ export const queryTeamByName = (database: Database, teamName: string) => {
     return database.get<TeamModel>(TEAM).query(Q.where('name', teamName));
 };
 
+export const queryActiveTeams = (database: Database) => {
+    return database.get<TeamModel>(TEAM).query(Q.where('delete_at', Q.gt(0)));
+};
+
 export const queryOtherTeams = (database: Database, teamIds: string[]) => {
     return database.get<TeamModel>(TEAM).query(Q.where('id', Q.notIn(teamIds)));
 };

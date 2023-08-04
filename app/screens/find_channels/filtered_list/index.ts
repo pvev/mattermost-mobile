@@ -37,11 +37,43 @@ const enhanced = withObservables(['term'], ({database, term}: EnhanceProps) => {
         switchMap((matchStart) => {
             return retrieveChannels(database, matchStart.flat(), true);
         }),
+
+        // Filter the recentChannels by checking if the teamId exists in the Set of teamIds
+        switchMap((recentChannels1) =>
+            teamIds.pipe(
+                // eslint-disable-next-line max-nested-callbacks
+                switchMap((teamIdsSet) =>
+                    // eslint-disable-next-line max-nested-callbacks
+                    of$(recentChannels1.filter((channel) => {
+                        if (!channel.teamId) {
+                            return true;
+                        }
+                        return teamIdsSet.has(channel.teamId);
+                    })),
+                ),
+            ),
+        ),
     );
 
     const channelsMatch = joinedChannelsMatch.pipe(
         combineLatestWith(directChannelsMatch),
         switchMap((matched) => retrieveChannels(database, matched.flat(), true)),
+
+        // Filter the recentChannels by checking if the teamId exists in the Set of teamIds
+        switchMap((recentChannels1) =>
+            teamIds.pipe(
+                // eslint-disable-next-line max-nested-callbacks
+                switchMap((teamIdsSet) =>
+                    // eslint-disable-next-line max-nested-callbacks
+                    of$(recentChannels1.filter((channel) => {
+                        if (!channel.teamId) {
+                            return true;
+                        }
+                        return teamIdsSet.has(channel.teamId);
+                    })),
+                ),
+            ),
+        ),
     );
 
     const archivedChannels = observeArchiveChannelsByTerm(database, term, MAX_RESULTS).pipe(

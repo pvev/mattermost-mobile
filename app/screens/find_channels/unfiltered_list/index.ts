@@ -18,10 +18,30 @@ const MAX_CHANNELS = 20;
 
 const enhanced = withObservables([], ({database}: WithDatabaseArgs) => {
     const teamsCount = queryJoinedTeams(database).observeCount();
+    const teamIds = queryJoinedTeams(database).observe().pipe(
+        // eslint-disable-next-line max-nested-callbacks
+        switchMap((teams) => of$(new Set(teams.map((t) => t.id)))),
+    );
 
     const recentChannels = queryMyRecentChannels(database, MAX_CHANNELS).
-        observeWithColumns(['last_viewed_at']).pipe(
+        observeWithColumns(['last_viewed_at', 'teamId']).pipe(
             switchMap((myChannels) => retrieveChannels(database, myChannels, true)),
+
+            // Filter the recentChannels by checking if the teamId exists in the Set of teamIds
+            switchMap((recentChannels1) =>
+                teamIds.pipe(
+                    // eslint-disable-next-line max-nested-callbacks
+                    switchMap((teamIdsSet) =>
+                        // eslint-disable-next-line max-nested-callbacks
+                        of$(recentChannels1.filter((channel) => {
+                            if (!channel.teamId) {
+                                return true;
+                            }
+                            return teamIdsSet.has(channel.teamId);
+                        })),
+                    ),
+                ),
+            ),
         );
 
     return {
